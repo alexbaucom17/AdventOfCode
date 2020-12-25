@@ -1,6 +1,7 @@
 import numpy as np
 import queue
 import cProfile
+import random
 
 def load_data(filename):
     with open(filename) as f:
@@ -36,10 +37,10 @@ class TileDescriptor:
         self.id = id
         self.data = data
         edge_len = self.data.shape[0]
-        self.edge_data = np.concatenate([self.data[0,:].reshape((1,edge_len)), \
-                                         self.data[:,0].reshape((1,edge_len)), \
-                                         self.data[-1,:].reshape((1,edge_len)), \
-                                         self.data[:,-1].reshape((1,edge_len))])
+        self.edge_data = [  ''.join(['1' if i else '0' for i in self.data[0,:]]),
+                            ''.join(['1' if i else '0' for i in self.data[:,0]]),
+                            ''.join(['1' if i else '0' for i in self.data[-1,:]]),
+                            ''.join(['1' if i else '0' for i in self.data[:,-1]])]
         self.top_edge = 0
         self.left_edge = 1
         self.bottom_edge = 2
@@ -50,27 +51,27 @@ class TileDescriptor:
         tmp = self.top_edge
         self.top_edge = self.bottom_edge
         self.bottom_edge = tmp
-        self.edge_data[self.left_edge,:] = np.flip(self.edge_data[self.left_edge,:])
-        self.edge_data[self.right_edge,:] = np.flip(self.edge_data[self.right_edge,:])
+        self.edge_data[self.left_edge] = self.edge_data[self.left_edge][::-1]
+        self.edge_data[self.right_edge] = self.edge_data[self.right_edge][::-1]
         
     def fliplr(self):
         tmp = self.right_edge
         self.right_edge = self.left_edge
         self.left_edge = tmp
-        self.edge_data[self.top_edge,:] = np.flip(self.edge_data[self.top_edge,:])
-        self.edge_data[self.bottom_edge,:] = np.flip(self.edge_data[self.bottom_edge,:])
+        self.edge_data[self.top_edge] = self.edge_data[self.top_edge][::-1]
+        self.edge_data[self.bottom_edge] = self.edge_data[self.bottom_edge][::-1]
 
     def rotateccw(self):
-        self.edge_data[self.top_edge,:] = np.flip(self.edge_data[self.top_edge,:])
-        self.edge_data[self.bottom_edge,:] = np.flip(self.edge_data[self.bottom_edge,:])
+        self.edge_data[self.top_edge] = self.edge_data[self.top_edge][::-1]
+        self.edge_data[self.bottom_edge] = self.edge_data[self.bottom_edge][::-1]
         self.top_edge = (self.top_edge - 1) % 4
         self.left_edge = (self.left_edge - 1) % 4
         self.bottom_edge = (self.bottom_edge - 1) % 4
         self.right_edge = (self.right_edge - 1) % 4
 
     def rotatecw(self):
-        self.edge_data[self.right_edge,:] = np.flip(self.edge_data[self.right_edge,:])
-        self.edge_data[self.left_edge,:] = np.flip(self.edge_data[self.left_edge,:])
+        self.edge_data[self.right_edge] = self.edge_data[self.right_edge][::-1]
+        self.edge_data[self.left_edge] = self.edge_data[self.left_edge][::-1]
         self.top_edge = (self.top_edge + 1) % 4
         self.left_edge = (self.left_edge + 1) % 4
         self.bottom_edge = (self.bottom_edge + 1) % 4
@@ -89,16 +90,16 @@ class TileDescriptor:
             raise ValueError("Unknown dir")
 
     def get_top_edge(self):
-        return self.edge_data[self.top_edge,:]
+        return self.edge_data[self.top_edge]
 
     def get_left_edge(self):
-        return self.edge_data[self.left_edge,:]
+        return self.edge_data[self.left_edge]
 
     def get_bottom_edge(self):
-        return self.edge_data[self.bottom_edge,:]
+        return self.edge_data[self.bottom_edge]
 
     def get_right_edge(self):
-        return self.edge_data[self.right_edge,:]
+        return self.edge_data[self.right_edge]
 
 
 def try_tile_join_fixed(new_id, fixed_id, join_dir, tiles):
@@ -119,7 +120,7 @@ def try_tile_join_fixed(new_id, fixed_id, join_dir, tiles):
     fixed_edge = fixed_tile.get_edge(join_dir)
     new_edge = new_tile.get_edge(new_dir)
 
-    if np.all(fixed_edge == new_edge):
+    if int(fixed_edge, 2) == int(new_edge, 2):
         fixed_tile.connections[join_dir] = new_id
         new_tile.connections[new_dir] = fixed_id
         return True
@@ -177,13 +178,16 @@ def add_tile_to_grid(tile_id, assembled, tiles):
 def assemble_tiles(tiles):
 
     all_keys = [k for k in tiles.keys()]
+    random.shuffle(all_keys)
     assembled = [all_keys[0]]
     unused = queue.Queue()
     for k in all_keys[1:]:
         unused.put(k)
 
     count = 0
-    while not unused.empty() and count < 100:
+    while not unused.empty():
+        if count % 100 == 0:
+            print("Count: {}, num unused: {}".format(count, unused.qsize()))
         count += 1
         tile_id = unused.get()
         # print("Checking new tile: {}".format(tile_id))
@@ -192,6 +196,9 @@ def assemble_tiles(tiles):
         if not fit:
             # print("No fit found, adding {} to end of queue".format(tile_id))
             unused.put(tile_id)
+
+        if count > 1000:
+            break
 
     return assembled
 
@@ -266,35 +273,13 @@ if __name__ == '__main__':
     sample_data = load_data("day20/sample_input.txt")
     data = load_data("day20/input.txt") 
 
-    # tiles = data
-    # cProfile.run('assembled_ids = assemble_tiles(tiles)')
-    # print(assembled_ids)
+    tiles = sample_data
+    assembled_ids = assemble_tiles(tiles)
+    print(assembled_ids)
 
-    # cProfile.run('grid = create_grid_from_tile_connections(assembled_ids, tiles)')
-    # print(grid)
+    grid = create_grid_from_tile_connections(assembled_ids, tiles)
+    np.set_printoptions(edgeitems=30, linewidth=100000)
+    print(grid)
 
-    # print(multiply_corners(grid))
-
-
-    x = int('11001100',2)
-    print('{0:b}'.format(x))
-    print('{0:b}'.format(reverse_mask(x)))
-
-
-    # print(check_tile_fit(1427, 2729, sample_data))
-
-
-    # for tile in sample_data.values():
-    #     print("Tile:\n{}\n".format(tile.data))
-    #     print("Top:\n{}\n".format(tile.get_top_edge()))
-    #     print("Bottom:\n{}\n".format(tile.get_bottom_edge()))
-    #     tile.rotateccw()
-    #     print("Top:\n{}\n".format(tile.get_top_edge()))
-    #     print("Bottom:\n{}\n".format(tile.get_bottom_edge()))
-    #     print("Left:\n{}\n".format(tile.get_left_edge()))
-    #     print("Right:\n{}\n".format(tile.get_right_edge()))
-    #     tile.rotatecw()
-    #     print("Left:\n{}\n".format(tile.get_left_edge()))
-    #     print("Right:\n{}\n".format(tile.get_right_edge()))
-    #     break
+    print(multiply_corners(grid))
     
