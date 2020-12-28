@@ -24,13 +24,6 @@ def load_data(filename):
         tiles[id] = TileDescriptor(id, np.array(tile_data, dtype=bool))
         return tiles
 
-def reverse_mask(x):
-    x = ((x & 0x55555555) << 1) | ((x & 0xAAAAAAAA) >> 1)
-    x = ((x & 0x33333333) << 2) | ((x & 0xCCCCCCCC) >> 2)
-    x = ((x & 0x0F0F0F0F) << 4) | ((x & 0xF0F0F0F0) >> 4)
-    x = ((x & 0x00FF00FF) << 8) | ((x & 0xFF00FF00) >> 8)
-    x = ((x & 0x0000FFFF) << 16) | ((x & 0xFFFF0000) >> 16)
-    return x
 
 class TileDescriptor:
     def __init__(self, id, data):
@@ -46,6 +39,8 @@ class TileDescriptor:
         self.bottom_edge = 2
         self.right_edge = 3
         self.connections = {"Left": None, "Right": None, "Top": None, "Bottom": None}
+        self.rot_val = 1
+        self.mutations = []
 
     def flipud(self):
         tmp = self.top_edge
@@ -53,6 +48,8 @@ class TileDescriptor:
         self.bottom_edge = tmp
         self.edge_data[self.left_edge] = self.edge_data[self.left_edge][::-1]
         self.edge_data[self.right_edge] = self.edge_data[self.right_edge][::-1]
+        self.rot_val = -1*self.rot_val
+        self.mutations.append("ud")
         
     def fliplr(self):
         tmp = self.right_edge
@@ -60,22 +57,26 @@ class TileDescriptor:
         self.left_edge = tmp
         self.edge_data[self.top_edge] = self.edge_data[self.top_edge][::-1]
         self.edge_data[self.bottom_edge] = self.edge_data[self.bottom_edge][::-1]
+        self.rot_val = -1*self.rot_val
+        self.mutations.append("lr")
 
     def rotateccw(self):
         self.edge_data[self.top_edge] = self.edge_data[self.top_edge][::-1]
         self.edge_data[self.bottom_edge] = self.edge_data[self.bottom_edge][::-1]
-        self.top_edge = (self.top_edge - 1) % 4
-        self.left_edge = (self.left_edge - 1) % 4
-        self.bottom_edge = (self.bottom_edge - 1) % 4
-        self.right_edge = (self.right_edge - 1) % 4
+        self.top_edge = (self.top_edge - self.rot_val) % 4
+        self.left_edge = (self.left_edge - self.rot_val) % 4
+        self.bottom_edge = (self.bottom_edge - self.rot_val) % 4
+        self.right_edge = (self.right_edge - self.rot_val) % 4
+        self.mutations.append("ccw")
 
     def rotatecw(self):
         self.edge_data[self.right_edge] = self.edge_data[self.right_edge][::-1]
         self.edge_data[self.left_edge] = self.edge_data[self.left_edge][::-1]
-        self.top_edge = (self.top_edge + 1) % 4
-        self.left_edge = (self.left_edge + 1) % 4
-        self.bottom_edge = (self.bottom_edge + 1) % 4
-        self.right_edge = (self.right_edge + 1) % 4
+        self.top_edge = (self.top_edge + self.rot_val) % 4
+        self.left_edge = (self.left_edge + self.rot_val) % 4
+        self.bottom_edge = (self.bottom_edge + self.rot_val) % 4
+        self.right_edge = (self.right_edge + self.rot_val) % 4
+        self.mutations.append("cw")
 
     def get_edge(self, dir):
         if dir == "Left":
@@ -100,6 +101,32 @@ class TileDescriptor:
 
     def get_right_edge(self):
         return self.edge_data[self.right_edge]
+
+    def print_edges(self):
+        arr = np.zeros(self.data.shape, dtype=int)
+        arr[0,:] = [int(c) for c in self.edge_data[self.top_edge]]
+        arr[-1,:] = [int(c) for c in self.edge_data[self.bottom_edge]]
+        arr[:,0] = [int(c) for c in self.edge_data[self.left_edge]]
+        arr[:,-1] = [int(c) for c in self.edge_data[self.right_edge]]
+        print(arr)
+
+    def get_data(self):
+        d = np.copy(self.data)
+        for m in self.mutations:
+            if m == "ud":
+                d = np.flipud(d)
+            elif m == "lr":
+                d = np.fliplr(d)
+            elif m == "cw":
+                d = np.rot90(d, -1)
+            elif m == "ccw":
+                d = np.rot90(d, 1)
+        return d
+
+    def get_data_no_borders(self):
+        d = self.get_data()
+        return d[1:-1, 1:-1]
+
 
 
 def try_tile_join_fixed(new_id, fixed_id, join_dir, tiles):
@@ -267,19 +294,82 @@ def multiply_corners(grid):
     return n1*n2*n3*n4
 
 
+def assemble_image(grid, tiles):
+    grid_size = grid.shape
+    all_keys = [k for k in tiles.keys()]
+    tile_size = tiles[all_keys[0]].get_data_no_borders().shape
+
+    assembled_size = (grid_size[0] * tile_size[0], grid_size[1] * tile_size[1])
+    img = np.zeros(assembled_size, dtype=bool)
+
+    for r,row in enumerate(grid):
+        for c,id in enumerate(row):
+            img_r_start = r * tile_size[0]
+            img_r_end = img_r_start + tile_size[0]
+            img_c_start = c * tile_size[1]
+            img_c_end = img_c_start + tile_size[1]
+            img[img_r_start:img_r_end, img_c_start:img_c_end] = tiles[id].get_data_no_borders()
+
+    return img
+
+
+monster_pattern = tuple([[0,18],[1,0],[1,5],[1,6],[1,11],[1,12],[1,17],[1,18],[1,19],[2,1],[2,4],[2,7],[2,10],[2,13],[2,16]])
+def is_monster_present(img_section):
+    for coord in monster_pattern:
+        if not img_section[coord[0], coord[1]]:
+            return False
+    return True
+
+def search_for_monsters(img):
+    sub_grid_size = (3,20)
+    img_size = img.shape
+    row_searches = img_size[0] - sub_grid_size[0]
+    col_searches = img_size[1] - sub_grid_size[1]
+
+    n_monsters = 0
+    for r in range(row_searches):
+        for c in range(col_searches):
+            section = img[r:r+sub_grid_size[0], c:c+sub_grid_size[1]]
+            if is_monster_present(section):
+                n_monsters += 1
+    return n_monsters
+
+def search_for_monsters_all_orientations(img):
+
+    n_monsters = 0
+    for i in range(2):
+        for j in range(4):
+            n_monsters = search_for_monsters(img)
+            if n_monsters > 0:
+                return n_monsters
+            img = np.rot90(img)
+        img = np.fliplr(img)
+    return n_monsters
+
 
 if __name__ == '__main__':
 
     sample_data = load_data("day20/sample_input.txt")
     data = load_data("day20/input.txt") 
+    random.seed(0)
 
-    tiles = sample_data
+    tiles = data
     assembled_ids = assemble_tiles(tiles)
-    print(assembled_ids)
 
     grid = create_grid_from_tile_connections(assembled_ids, tiles)
     np.set_printoptions(edgeitems=30, linewidth=100000)
     print(grid)
 
+    # Part 1
     print(multiply_corners(grid))
+
+    # Part 2
+    img = assemble_image(grid, tiles)
+    # print(img)
+    n_monsters = search_for_monsters_all_orientations(img)
+    print(n_monsters)
+    n_points_for_monsters = n_monsters * len(monster_pattern)
+    n_all_points = np.sum(img)
+    print(n_all_points - n_points_for_monsters)
+
     
