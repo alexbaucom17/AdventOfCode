@@ -8,7 +8,11 @@ cur_files = os.listdir(os.path.join('.', year_folder))
 max_day = 0
 for file in cur_files:
     if file.startswith('day'):
-        cur_day = int(file[3])
+        one_digit = file[4] == '.'
+        if one_digit:
+            cur_day = int(file[3])
+        else:
+            cur_day = int(file[3:5])
         if cur_day > max_day: 
             max_day = cur_day
 aoc_path = pathlib.Path(__file__).parent.resolve()
