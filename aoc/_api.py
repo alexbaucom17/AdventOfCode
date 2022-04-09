@@ -36,7 +36,7 @@ if not YEAR:
     assert YEAR is not None
 YEAR = int(YEAR.strip())
 
-def get_input(day: int, year: int = YEAR, overwrite: bool = False, sample: bool = False):
+def get_input(day: int, year: int = YEAR, overwrite: bool = False, sample: bool = False, index: int = 0):
     """
     Usage:
     ```python
@@ -46,7 +46,7 @@ def get_input(day: int, year: int = YEAR, overwrite: bool = False, sample: bool 
     """
 
     if sample: 
-        return get_sample_input(day, year, overwrite)
+        return get_sample_input(day, year, overwrite, index)
     else:
         return get_full_input(day, year, overwrite)
 
@@ -83,15 +83,15 @@ def get_multiline_input():
         lines.append(line)
     return '\n'.join(lines)
 
-def get_sample_input(day: int, year: int = YEAR, overwrite: bool = False):
+def get_sample_input(day: int, year: int = YEAR, overwrite: bool = False, index: int = 0):
     path_str = os.path.join(f'AdventofCode{YEAR}','data')
     Path(path_str).mkdir(exist_ok=True)
 
-    file_name = f"sample_{year}_{day}.txt"
+    file_name = f"sample_{index}_{year}_{day}.txt"
     file_path = os.path.join(path_str, file_name)
     data = None if overwrite else _set_read_file(file_path)
     if not data:
-        print("Enter sample data, then press Ctrl-Z and Enter to finish: ")
+        print(f"Enter sample data for index {index}, then press Ctrl-Z and Enter to finish: ")
         data = _set_read_file(file_path, get_multiline_input())
 
     if data is None:

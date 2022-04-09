@@ -26,4 +26,4 @@ if len(sys.argv) > 1:
             print(f'{next_file} already exists, not overwriting')
         else:
             with open(next_file, 'w') as f:
-                f.writelines(['import sys\n', "sys.path.append('.')\n", 'import aoc\n', 'import math\n', '\n', f'data_rows = aoc.get_input({next_day}, sample=True).splitlines()\n'])
+                f.writelines(['import sys\n', "sys.path.append('.')\n", 'import aoc\n', 'import math\n', '\n', f'data_rows = aoc.get_input({next_day}, sample=True, index=0).splitlines()\n'])
