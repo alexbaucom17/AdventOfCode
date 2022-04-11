@@ -6,6 +6,7 @@ import numpy as np
 from joblib import Parallel, delayed
 from anytree import Node, RenderTree, PostOrderIter
 from queue import Queue
+from aoc_utils.transformations import invH, rot_trans_to_H, transformPoints
 
 data_rows = aoc.get_input(19, sample=False, index=0).splitlines()
 
@@ -59,25 +60,13 @@ def parse():
         outclouds[k] = arr
     return outclouds
 
-def rot_trans_to_H(R, T):
-    H = np.zeros((4,4), dtype=np.int32)
-    H[:3, :3] = R
-    H[:3, 3] = T
-    H[3,3] = 1
-    return H
-
-def transform(cloud, H):
-    hCloud = np.vstack((cloud, np.ones((1, cloud.shape[1]))))
-    hCloudNew = H @ hCloud
-    return hCloudNew[:3, :]
-
 def check_match(c1, c2):
 
     # Expand c2 to size [3, c2_points, all_R]
     c2_all_rotations = np.repeat(c2[:,:,np.newaxis], len(all_rotations), axis = 2)
     for i in range(len(all_rotations)):
         H = rot_trans_to_H(all_rotations[i], np.zeros((1,3)))
-        c2_all_rotations[:,:,i] = transform(c2_all_rotations[:,:,i], H)
+        c2_all_rotations[:,:,i] = transformPoints(c2_all_rotations[:,:,i], H)
 
     # This is size [3, c2_points, all_R, c1_points, c2_points]
     c2_all_translations = np.empty(list(c2_all_rotations.shape) + [c1.shape[1], c2.shape[1]], dtype=np.int32)
@@ -116,7 +105,7 @@ def join(c1, c2, R, T):
     return joinH(c1, c2, H)
 
 def joinH(c1, c2, H):
-    c2_transformed = transform(c2, H)
+    c2_transformed = transformPoints(c2, H)
     joined = np.concatenate((c1, c2_transformed), axis=1)
     joined_unique = np.unique(joined, axis=1)
     # print(f"Num points joined: {joined.shape[1]}, unique: {joined_unique.shape[1]}")
