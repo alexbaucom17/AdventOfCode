@@ -1,5 +1,4 @@
 import math
-from msilib.schema import BindImage
 from typing import Union
 
 class Binlist(list):
@@ -20,6 +19,13 @@ class Binlist(list):
             out += str(int(d))
         return out
 
+def str_to_binlist(s: str, true_char: str, false_char: str):
+    data = []
+    for c in s:
+        if c not in [true_char, false_char]:
+            raise ValueError(f"Tried to parse char {c} but it is not in set ({true_char}, {false_char})")
+        data.append(bool(c==true_char))
+    return Binlist(data)
 
 hex_map = {
     '0':[0,0,0,0],
