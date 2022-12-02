@@ -1,5 +1,6 @@
-import aoc
 import sys
+sys.path.append('.')
+import aoc
 import os
 import pathlib
 
