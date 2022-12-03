@@ -5,6 +5,7 @@ from datetime import datetime
 import os
 
 _SESSION_FILE_NAME = "session.txt"
+_EMAIL_FILE_NAME = "email.txt"
 _YEAR_FILE_NAME = "year.txt"
 
 
@@ -27,6 +28,14 @@ if not SESSION:
         input("Enter your session cookie: "))
 assert SESSION is not None
 SESSION = SESSION.strip()
+
+EMAIL = _set_read_file(_EMAIL_FILE_NAME)
+if not EMAIL:
+    EMAIL = _set_read_file(
+        _EMAIL_FILE_NAME,
+        input("Enter your email: "))
+assert EMAIL is not None
+EMAIL = EMAIL.strip()
 
 YEAR = _set_read_file(_YEAR_FILE_NAME)
 if not YEAR:
@@ -59,6 +68,10 @@ def get_full_input(day: int, year: int = YEAR, overwrite: bool = False):
     file_path = os.path.join(path_str, file_name)
     data = None if overwrite else _set_read_file(file_path)
     if not data:
+        REQUEST_HEADER = {
+            "User-Agent": f"github.com/alexbaucom17/AdventOfCode by {EMAIL}",
+            "cookie": f"session={SESSION}",
+        }
         response = requests.get(
                 f"https://adventofcode.com/{year}/day/{day}/input",
                 cookies={"session": SESSION})
