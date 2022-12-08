@@ -3,6 +3,7 @@ from typing import Any
 import queue
 import math
 import time
+import numpy as np
 
 @dataclass(frozen=True)
 class Coord:
@@ -39,6 +40,9 @@ class Grid:
             return invalid
         else:
             return self.data[point.y][point.x] 
+
+    def numpy(self):
+        return np.asarray(self.data)
 
     def get_neighbors(self, coord: Coord, neighbor_fn=ortho_neighbors):
         neighbors = []
