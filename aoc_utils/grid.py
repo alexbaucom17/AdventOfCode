@@ -76,7 +76,24 @@ def astar_cost_fn(cur_node: SearchNode, neighbor_coord: Coord, neighbor_cost: in
     est_cost = abs(end.row - neighbor_coord.row) + abs(end.col - neighbor_coord.col)
     return prev_cost + est_cost
 
-def find_path(start: Coord, end: Coord, grid: Grid, neighbor_fn=ortho_neighbors, cost_fn=astar_cost_fn):
+def grid_is_cost(grid, coord, neighbor_steps=ortho_neighbors):
+    return grid.get_neighbors(coord, neighbor_steps)
+
+def print_search(grid: Grid, path: list[Coord], explored: set[Coord]):
+    step_map = {(-1,0): "<", (1,0): ">", (0,-1): "^", (0,1): "V"}
+    char_grid = [["." for _ in row] for row in grid.numpy()]
+    for c in explored:
+        char_grid[c.row][c.col] = "-"
+    for i in range(len(path)-1):
+        step_row = path[i+1].row - path[i].row
+        step_col = path[i+1].col - path[i].col
+        char_grid[path[i].row][path[i].col] = step_map[(step_col, step_row)]
+    char_grid[path[-1].row][path[-1].col]= "E"
+    for row in char_grid:
+        print("".join(row))
+
+
+def find_path(start: Coord, end: Coord, grid: Grid, neighbor_fn=grid_is_cost, cost_fn=astar_cost_fn):
         tic = time.perf_counter()
         q = queue.PriorityQueue()
         explored = set()
@@ -84,14 +101,18 @@ def find_path(start: Coord, end: Coord, grid: Grid, neighbor_fn=ortho_neighbors,
 
         while not q.empty():
             node = q.get()
-            # print(f"{node.sort_cost}, {node.actual_cost}, {node.coord}")
+            # print(f"{node.coord}, {node.sort_cost}, {node.actual_cost}")
+
+            if node.coord in explored:
+                continue
 
             if node.coord == end:
                 toc = time.perf_counter()
                 print(f"Search time: {toc - tic:0.4f} seconds, Total nodes explored: {len(explored)}")
+                # print_search(grid, node.path, explored)
                 return (node.actual_cost, node.path)
 
-            neighbors = grid.get_neighbors(node.coord, neighbor_fn)
+            neighbors = neighbor_fn(grid, node.coord)
             for n_coord, n_cost in neighbors:
                 if n_coord not in explored:
                     new_sort_cost = cost_fn(node, n_coord, n_cost, end)
