@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field, astuple
 from typing import Any
 import queue
-import math
+import copy
 import time
 import numpy as np
 
@@ -124,3 +124,78 @@ def find_path(start: Coord, end: Coord, grid: Grid, neighbor_fn=grid_is_cost, co
         toc = time.perf_counter()
         print(f"Search time: {toc - tic:0.4f} seconds, Total nodes explored: {len(explored)}")
         return (-1, None)
+
+
+class ExpandingGrid:
+  def __init__(self, init_offset_x=500, init_offset_y=500, default_val=None):
+    self.data = [[default_val for x in range(2)] for y in range(2)]
+    self.x_offset = init_offset_x
+    self.y_offset = init_offset_y
+    self.default_val = default_val
+
+  def x_lims(self):
+    return (self.x_offset, self.x_offset + len(self.data[0]))
+
+  def y_lims(self):
+    return (self.y_offset, self.y_offset + len(self.data))
+
+  def get(self, point: Point):
+    if self._in_lims(point):
+      return self.data[point.y-self.y_offset][point.x-self.x_offset] 
+    else:
+      return self.default_val
+
+  def get_oob(self, point: Point, oob_val=None):
+    if self._in_lims(point):
+      return self.data[point.y-self.y_offset][point.x-self.x_offset] 
+    else:
+      return oob_val
+
+  def _in_lims(self, point: Point):
+    x_lims = self.x_lims()
+    y_lims = self.y_lims()
+    if point.y < y_lims[0] or point.y >= y_lims[1] or point.x < x_lims[0] or point.x >= x_lims[1]:
+      return False
+    else:
+      return True
+  
+  def set(self, point: Point, val):
+    if self._in_lims(point):
+      self._fixed_set(point, val)
+    else:
+      self._expand_set(point, val)
+
+  def _fixed_set(self, point: Point, val):
+    y = point.y-self.y_offset
+    x = point.x-self.x_offset
+    self.data[y][x] = val
+
+  def _expand_set(self, point: Point, val):
+    cur_x_lim = self.x_lims()
+    cur_y_lim = self.y_lims()
+    new_x_lim = list(copy.deepcopy(cur_x_lim))
+    new_y_lim = list(copy.deepcopy(cur_y_lim))
+    if point.y < cur_y_lim[0]:
+      new_y_lim[0] = point.y - 1
+    if point.y >= cur_y_lim[1]:
+      new_y_lim[1] = point.y + 1
+    if point.x < cur_x_lim[0]:
+      new_x_lim[0] = point.x - 1
+    if point.x >= cur_x_lim[1]:
+      new_x_lim[1] = point.x + 1
+
+    cur_dx = cur_x_lim[1] - cur_x_lim[0]
+    cur_dy = cur_y_lim[1] - cur_y_lim[0]
+    new_dx = new_x_lim[1] - new_x_lim[0]
+    new_dy = new_y_lim[1] - new_y_lim[0]
+    new_data = [[self.default_val for x in range(new_dx)] for y in range(new_dy)]
+    new_to_cur_x = cur_x_lim[0] - new_x_lim[0]
+    new_to_cur_y = cur_y_lim[0] - new_y_lim[0]
+    for x in range(cur_dx):
+      for y in range(cur_dy):
+        new_data[new_to_cur_y + y][new_to_cur_x + x] = self.data[y][x]
+    self.data = new_data
+    
+    self.x_offset = new_x_lim[0]
+    self.y_offset = new_y_lim[0]
+    self._fixed_set(point, val)

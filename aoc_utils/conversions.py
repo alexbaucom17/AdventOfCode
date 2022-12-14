@@ -51,3 +51,11 @@ def hex_str_to_bin_list(hex: str) -> Binlist:
         outlist += hex_map[c]
     return Binlist(outlist)
 
+def sign(x):
+    if x > 0:
+        return 1
+    elif x < 0:
+        return -1
+    else:
+        return 0
+
