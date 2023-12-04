@@ -13,3 +13,6 @@ def group_by_blank_lines(rows):
             tmp.append(row)
     out.append(tmp)
     return out
+
+def get_numbers_with_separator(row: str, sep: str=" ") -> list[int]:
+    return [int(num.strip()) for num in row.strip().split(sep) if num]
