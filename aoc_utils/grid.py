@@ -60,7 +60,31 @@ class Grid:
                 out += str(val)
             out += "\n"
         return out
+    
+    def str_dot_hash(self):
+        out = ""
+        for row in self.data:
+            for val in row:
+                out += "." if val == 0 else "#"
+            out += "\n"
+        return out
+      
 
+
+def grid_from_str(rows: list[str], empty_str: str=".", occ_str: str = "#") -> Grid:
+    int_grid = []
+    for row in rows:
+        int_row = []
+        for c in row:
+            if c == empty_str:
+                int_row.append(0)
+            elif c == occ_str:
+              int_row.append(1)
+            else:
+              raise ValueError(f"Found char {c} which does not match empty char ({empty_str}) or occ char ({occ_str})")
+        int_grid.append(int_row)
+    return Grid(int_grid)
+       
 @dataclass(frozen=True, order=True)
 class SearchNode:
     sort_cost: int
@@ -108,7 +132,7 @@ def find_path(start: Coord, end: Coord, grid: Grid, neighbor_fn=grid_is_cost, co
 
             if node.coord == end:
                 toc = time.perf_counter()
-                print(f"Search time: {toc - tic:0.4f} seconds, Total nodes explored: {len(explored)}")
+                # print(f"Search time: {toc - tic:0.4f} seconds, Total nodes explored: {len(explored)}")
                 # print_search(grid, node.path, explored)
                 return (node.actual_cost, node.path)
 
@@ -122,7 +146,7 @@ def find_path(start: Coord, end: Coord, grid: Grid, neighbor_fn=grid_is_cost, co
             explored.add(node.coord)
 
         toc = time.perf_counter()
-        print(f"Search time: {toc - tic:0.4f} seconds, Total nodes explored: {len(explored)}")
+        # print(f"Search time: {toc - tic:0.4f} seconds, Total nodes explored: {len(explored)}")
         return (-1, None)
 
 
