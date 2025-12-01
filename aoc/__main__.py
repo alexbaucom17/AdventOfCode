@@ -9,7 +9,7 @@ def file_template(day: int) -> str:
 import sys
 sys.path.append('.')
 import aoc
-import math
+from aoc_utils import parsing
 
 data_rows = aoc.get_input(day={day}, sample=True, index=0).splitlines()
 
