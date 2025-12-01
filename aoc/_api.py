@@ -61,7 +61,7 @@ def get_input(day: int, year: int = YEAR, overwrite: bool = False, sample: bool 
 
 def get_full_input(day: int, year: int = YEAR, overwrite: bool = False):
 
-    path_str = os.path.join(f'AdventofCode{YEAR}','data')
+    path_str = os.path.join(f'{YEAR}','data')
     Path(path_str).mkdir(exist_ok=True)
 
     file_name = f"{year}_{day}.txt"
@@ -97,7 +97,7 @@ def get_multiline_input():
     return '\n'.join(lines)
 
 def get_sample_input(day: int, year: int = YEAR, overwrite: bool = False, index: int = 0):
-    path_str = os.path.join(f'AdventofCode{YEAR}','data')
+    path_str = os.path.join(f'{YEAR}','data')
     Path(path_str).mkdir(exist_ok=True)
 
     file_name = f"sample_{index}_{year}_{day}.txt"

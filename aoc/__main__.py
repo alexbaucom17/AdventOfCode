@@ -4,7 +4,28 @@ import aoc
 import os
 import pathlib
 
-year_folder = f'AdventofCode{aoc.YEAR}'
+def file_template(day: int) -> str:
+    return f"""
+import sys
+sys.path.append('.')
+import aoc
+import math
+
+data_rows = aoc.get_input(day={day}, sample=True, index=0).splitlines()
+
+def part1():
+  pass
+
+part1()
+
+#def part2():
+#  pass
+
+#part2()
+
+"""
+
+year_folder = f'{aoc.YEAR}'
 cur_files = os.listdir(os.path.join('.', year_folder))
 max_day = 0
 for file in cur_files:
@@ -27,4 +48,4 @@ if len(sys.argv) > 1:
             print(f'{next_file} already exists, not overwriting')
         else:
             with open(next_file, 'w') as f:
-                f.writelines(['import sys\n', "sys.path.append('.')\n", 'import aoc\n', 'import math\n', '\n', f'data_rows = aoc.get_input({next_day}, sample=True, index=0).splitlines()\n\ndef part1():\n  pass\n\npart1()\n\n#def part2():\n#  pass\n\n#part2()'])
+                f.writelines(file_template(next_day))
