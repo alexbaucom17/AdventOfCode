@@ -52,6 +52,11 @@ class Grid:
             if val is not None:
                 neighbors.append((check_coord,val))
         return neighbors
+    
+    def safe_set(self, coord: Coord, value):
+        if coord.row < 0 or coord.row >= self.n_rows or coord.col < 0 or coord.col >= self.n_cols:
+           return
+        self.data[coord.row][coord.col] = value
 
     def __str__(self):
         out = ""
