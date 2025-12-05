@@ -2,6 +2,8 @@ from operator import itemgetter
 
 # This takes a list of pairs (a, b) describing a range and merges all ranges together into the 
 # minimum set of unique ranges that cover all input ranges.
+# Note, this seems to have some subtle bug as it did not work for 2025 day 5 part 2. The simple version
+# below did work for that day though and it returned way more ranges. This version only returned 2.
 def merge_1d_ranges(ranges):
 
   # If there is only one range, just return it
@@ -70,3 +72,31 @@ def merge_1d_ranges(ranges):
       open_id.add(next_id)
   
   return merged_ranges
+
+
+# This takes a list of pairs (a, b) describing a range and merges all ranges together into the 
+# minimum set of unique ranges that cover all input ranges. It is less efficient than the version
+# above as it repeatedly compares all ranges until there is no overlap. But for a small-ish number
+# of ranges this is fine.
+def merge_1d_ranges_simple(ranges: set[tuple[int, int]]) -> set[tuple[int, int]]:
+  while True:
+    updated = False
+    for r1 in ranges:
+      for r2 in ranges:
+        if r1 == r2:
+          continue
+        if r1[0] <= r2[1] and r2[0] <= r1[1]:
+          new_min = min([r1[0], r2[0]])
+          new_max = max([r1[1], r2[1]])
+          ranges.remove(r1)
+          ranges.remove(r2)
+          ranges.add((new_min, new_max))
+          updated = True
+          break
+      if updated:
+        break
+    if not updated:
+      return ranges
+
+
+
